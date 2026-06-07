@@ -533,13 +533,19 @@ function renderHabits() {
   const total = habits.length;
   const done  = habits.filter(h => checks[h.id]).length;
   document.getElementById('hcount').textContent = `${done} / ${total}`;
-  const off = total ? 226.19 * (1 - done/total) : 226.19;
+  const circumference = 2 * Math.PI * 36; // r=36 matches SVG
+  const off = total ? circumference * (1 - done/total) : circumference;
+  document.getElementById('main-arc').setAttribute('stroke-dasharray', circumference);
+
   document.getElementById('main-arc').setAttribute('stroke-dashoffset', off);
+  document.getElementById('main-arc').setAttribute('stroke-dasharray', circumference);
   document.getElementById('rnum').textContent = done;
-  const idx = Math.min(done, TITLES.length-1);
-  document.getElementById('httl').textContent = TITLES[idx];
-  document.getElementById('hsub').textContent = SUBS[idx];
-  document.getElementById('tmsg').textContent = MSGS[Math.min(done, MSGS.length-1)];
+  // Scale index to 0-7 range regardless of actual habit count
+  const scaledIdx = total > 0 ? Math.round((done / total) * (TITLES.length - 1)) : 0;
+  document.getElementById('httl').textContent = TITLES[scaledIdx];
+  document.getElementById('hsub').textContent = SUBS[scaledIdx];
+  const allDoneMsg = done === total && total > 0;
+  document.getElementById('tmsg').textContent = allDoneMsg ? MSGS[MSGS.length-1] : MSGS[Math.min(scaledIdx, MSGS.length-2)];
   document.getElementById('edit-toggle').textContent = editMode ? '✅ Done' : '✏️ Edit';
 
   const circ = 2*Math.PI*17;
@@ -598,13 +604,10 @@ function renderHabits() {
       </div>`;
   }
 
-  // streak dots
-  const today = new Date(); today.setHours(0,0,0,0);
-  const d7 = Array.from({length:7}, (_,i) => { const d=new Date(today); d.setDate(today.getDate()-(6-i)); return d; });
-  document.getElementById('dots').innerHTML = d7.map(d => {
-    const k=d.toDateString();
-    return `<div class="dot${streak[k]?' on':k===todayKey?' cur':''}"></div>`;
-  }).join('');
+  // habit completion dots — one dot per habit, filled if done
+  document.getElementById('dots').innerHTML = habits.map(h =>
+    `<div class="dot${checks[h.id] ? ' on' : ''}"></div>`
+  ).join('');
 }
 
 function renderWeek() {
